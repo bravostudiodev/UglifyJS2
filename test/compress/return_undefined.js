@@ -17,7 +17,6 @@ return_undefined: {
         keep_fnames   : false,
         hoist_vars    : true,
         join_vars     : true,
-        cascade       : true,
         negate_iife   : true
     };
     input: {
@@ -119,6 +118,28 @@ return_undefined: {
         }
         function f12() {
             return 0;
+        }
+    }
+}
+
+return_void: {
+    options = {
+        if_return: true,
+        inline: true,
+        reduce_vars: true,
+        unused: true,
+    }
+    input: {
+        function f() {
+            function g() {
+                h();
+            }
+            return g();
+        }
+    }
+    expect: {
+        function f() {
+            h();
         }
     }
 }

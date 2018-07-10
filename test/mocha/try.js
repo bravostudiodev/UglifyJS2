@@ -1,5 +1,5 @@
 var assert = require("assert");
-var uglify = require("../../");
+var uglify = require("../node");
 
 describe("Try", function() {
     it("Should not allow catch with an empty parameter", function() {
@@ -9,7 +9,7 @@ describe("Try", function() {
 
         var test = function(code) {
             return function () {
-                uglify.parse(code, {fromString: true});
+                uglify.parse(code);
             }
         }
         var error = function (e) {

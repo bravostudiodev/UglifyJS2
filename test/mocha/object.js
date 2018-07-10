@@ -1,10 +1,14 @@
-var Uglify = require("../../");
+var Uglify = require("../node");
 var assert = require("assert");
 
 describe("Object", function() {
     it("Should allow objects to have a methodDefinition as property", function() {
         var code = "var a = {test() {return true;}}";
-        assert.equal(Uglify.minify(code, {fromString: true}).code, "var a={test(){return!0}};");
+        assert.equal(Uglify.minify(code, {
+            compress: {
+                arrows: false
+            }
+        }).code, "var a={test(){return!0}};");
     });
 
     it("Should not allow objects to use static keywords like in classes", function() {

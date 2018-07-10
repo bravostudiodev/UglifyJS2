@@ -1,4 +1,4 @@
-var UglifyJS = require('../../');
+var UglifyJS = require("../node");
 var assert = require("assert");
 
 describe("String literals", function() {
@@ -61,9 +61,9 @@ describe("String literals", function() {
         var tests = [
             ['"\\76";', ';">";'],
             ['"\\0"', '"\\0";'],
-            ['"\\08"', '"\\08";'],
-            ['"\\008"', '"\\08";'],
-            ['"\\0008"', '"\\08";'],
+            ['"\\08"', '"\\x008";'],
+            ['"\\008"', '"\\x008";'],
+            ['"\\0008"', '"\\x008";'],
             ['"use strict" === "use strict";\n"\\76";', '"use strict"==="use strict";">";'],
             ['"use\\\n strict";\n"\\07";', ';"use strict";"\07";']
         ];
@@ -75,7 +75,44 @@ describe("String literals", function() {
     });
 
     it("Should not throw error when digit is 8 or 9", function() {
-        assert.equal(UglifyJS.parse('"use strict";"\\08"').print_to_string(), '"use strict";"\\08";');
-        assert.equal(UglifyJS.parse('"use strict";"\\09"').print_to_string(), '"use strict";"\\09";');
+        assert.equal(UglifyJS.parse('"use strict";"\\08"').print_to_string(), '"use strict";"\\x008";');
+        assert.equal(UglifyJS.parse('"use strict";"\\09"').print_to_string(), '"use strict";"\\x009";');
+    });
+
+    it("Should not unescape unpaired surrogates", function() {
+        var code = [];
+        for (var i = 0; i <= 0xF; i++) {
+            code.push("\\u000" + i.toString(16));
+        }
+        for (;i <= 0xFF; i++) {
+            code.push("\\u00" + i.toString(16));
+        }
+        for (;i <= 0xFFF; i++) {
+            code.push("\\u0" + i.toString(16));
+        }
+        for (; i <= 0xFFFF; i++) {
+            code.push("\\u" + i.toString(16));
+        }
+        code = '"' + code.join() + '"';
+        var normal = UglifyJS.minify(code, {
+            compress: false,
+            mangle: false,
+            output: {
+                ascii_only: false
+            }
+        });
+        if (normal.error) throw normal.error;
+        assert.ok(code.length > normal.code.length);
+        assert.strictEqual(eval(code), eval(normal.code));
+        var ascii = UglifyJS.minify(code, {
+            compress: false,
+            mangle: false,
+            output: {
+                ascii_only: false
+            }
+        });
+        if (ascii.error) throw ascii.error;
+        assert.ok(code.length > ascii.code.length);
+        assert.strictEqual(eval(code), eval(ascii.code));
     });
 });

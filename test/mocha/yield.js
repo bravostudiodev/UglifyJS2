@@ -1,23 +1,11 @@
-var UglifyJS = require("../../");
+var UglifyJS = require("../node");
 var assert = require("assert");
 
 describe("Yield", function() {
     it("Should not delete statements after yield", function() {
         var js = 'function *foo(bar) { yield 1; yield 2; return 3; }';
-        var result = UglifyJS.minify(js, {fromString: true});
+        var result = UglifyJS.minify(js);
         assert.strictEqual(result.code, 'function*foo(e){return yield 1,yield 2,3}');
-    });
-
-    it("Should not allow yield as labelIdentifier within generators", function() {
-        var js = "function* g() {yield: 1}"
-        var test = function() {
-            UglifyJS.parse(js);
-        }
-        var expect = function(e) {
-            return e instanceof UglifyJS.JS_Parse_Error &&
-                e.message === "Yield cannot be used as label inside generators";
-        }
-        assert.throws(test, expect);
     });
 
     it("Should not allow yield* followed by a semicolon in generators", function() {
@@ -46,61 +34,97 @@ describe("Yield", function() {
 
     it("Should be able to compress its expression", function() {
         assert.strictEqual(
-            UglifyJS.minify("function *f() { yield 3-4; }", {fromString: true, compress: true}).code,
+            UglifyJS.minify("function *f() { yield 3-4; }", {compress: true}).code,
             "function*f(){yield-1}"
         );
     });
 
     it("Should keep undefined after yield without compression if found in ast", function() {
         assert.strictEqual(
-            UglifyJS.minify("function *f() { yield undefined; yield; yield* undefined; yield void 0}", {fromString: true, compress: false}).code,
+            UglifyJS.minify("function *f() { yield undefined; yield; yield* undefined; yield void 0}", {compress: false}).code,
             "function*f(){yield undefined;yield;yield*undefined;yield void 0}"
         );
     });
 
     it("Should be able to drop undefined after yield if necessary with compression", function() {
         assert.strictEqual(
-            UglifyJS.minify("function *f() { yield undefined; yield; yield* undefined; yield void 0}", {fromString: true, compress: true}).code,
+            UglifyJS.minify("function *f() { yield undefined; yield; yield* undefined; yield void 0}", {compress: true}).code,
             "function*f(){yield,yield,yield*void 0,yield}"
         );
     });
 
-    it("Should not allow yield to be used as symbol, identifier or property outside generators in strict mode", function() {
-        var tests = [
-            // Fail as as_symbol
-            '"use strict"; import yield from "bar";',
-            '"use strict"; yield = 123;',
-            '"use strict"; yield: "123";',
-            '"use strict"; for(;;){break yield;}',
-            '"use strict"; for(;;){continue yield;}',
-            '"use strict"; function yield(){}',
-            '"use strict"; function foo(...yield){}',
-            '"use strict"; try { new Error("")} catch (yield) {}',
-            '"use strict"; var yield = "foo";',
-            '"use strict"; class yield {}',
+    var identifiers = [
+        // Fail in as_symbol
+        'import yield from "bar";',
+        'yield = 123;',
+        'yield: "123";',
+        'for(;;){break yield;}',
+        'for(;;){continue yield;}',
+        'function yield(){}',
+        'try { new Error("")} catch (yield) {}',
+        'var yield = "foo";',
+        'class yield {}',
+        // Fail in as_property_name
+        'var foo = {yield};',
+    ];
 
-            // Fail as maybe_assign
-            '"use strict"; var foo = yield;',
-            '"use strict"; var foo = bar = yield',
-
-            // Fail as as_property_name
-            '"use strict"; var foo = {yield};',
-            '"use strict"; var bar = {yield: "foo"};'
-        ];
-
-        var fail = function(e) {
+    it("Should not allow yield to be used as symbol, identifier or shorthand property outside generators in strict mode", function() {
+        function fail(e) {
             return e instanceof UglifyJS.JS_Parse_Error &&
                 /^Unexpected yield identifier (?:as parameter )?inside strict mode/.test(e.message);
         }
 
-        var test = function(input) {
+        function test(input) {
             return function() {
                 UglifyJS.parse(input);
             }
         }
 
-        for (var i = 0; i < tests.length; i++) {
-            assert.throws(test(tests[i]), fail, tests[i]);
+        identifiers.concat([
+            // Fail in as_symbol
+            "function foo(...yield){}",
+            // Fail in maybe_assign
+            'var foo = yield;',
+            'var foo = bar = yield',
+        ]).map(function(code) {
+            return '"use strict"; ' + code;
+        }).forEach(function(code) {
+            assert.throws(test(code), fail, code);
+        });
+    });
+
+    it("Should not allow yield to be used as symbol, identifier or shorthand property inside generators", function() {
+        function fail(e) {
+            return e instanceof UglifyJS.JS_Parse_Error && [
+                "Unexpected token: operator (=)",
+                "Yield cannot be used as identifier inside generators",
+            ].indexOf(e.message) >= 0;
         }
+
+        function test(input) {
+            return function() {
+                UglifyJS.parse(input);
+            }
+        }
+
+        identifiers.map(function(code) {
+            return "function* f() { " + code + " }";
+        }).concat([
+            // Fail in as_symbol
+            "function* f(yield) {}",
+        ]).forEach(function(code) {
+            assert.throws(test(code), fail, code);
+        });
+    });
+
+    it("Should allow yield to be used as class/object property name", function() {
+        var input = [
+            '"use strict";',
+            "({yield:42});",
+            "({yield(){}});",
+            "(class{yield(){}});",
+            "class C{yield(){}}",
+        ].join("");
+        assert.strictEqual(UglifyJS.minify(input, { compress: false }).code, input);
     });
 });

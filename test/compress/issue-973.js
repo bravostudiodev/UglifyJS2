@@ -1,7 +1,8 @@
 this_binding_conditionals: {
     options = {
         conditionals: true,
-        evaluate    : true
+        evaluate: true,
+        side_effects: true,
     };
     input: {
         (1 && a)();
@@ -50,6 +51,8 @@ this_binding_conditionals: {
 this_binding_collapse_vars: {
     options = {
         collapse_vars: true,
+        toplevel: true,
+        unused: true,
     };
     input: {
         var c = a; c();

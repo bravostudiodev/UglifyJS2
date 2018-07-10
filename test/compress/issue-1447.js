@@ -32,7 +32,6 @@ conditional_false_stray_else_in_loop: {
         hoist_vars   : true,
         join_vars    : true,
         if_return    : true,
-        cascade      : true,
         conditionals : false,
     }
     input: {
@@ -42,4 +41,5 @@ conditional_false_stray_else_in_loop: {
         }
     }
     expect_exact: "for(var i=1;i<=4;++i)if(!(i<=2))console.log(i);"
+    expect_stdout: true
 }

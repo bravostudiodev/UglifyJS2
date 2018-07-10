@@ -88,9 +88,8 @@ yield_before_punctuators: {
         })();
         function* g1() { (yield) }
         function* g2() { [yield] }
-        function* g3() { return {yield} } // Added return to avoid {} drop
-        function* g4() { yield, yield; }
-        function* g5() { (yield) ? yield : yield; }
+        function* g3() { yield, yield; }
+        function* g4() { (yield) ? yield : yield; }
     }
     expect: {
         iter = (function*() {
@@ -98,9 +97,8 @@ yield_before_punctuators: {
         })();
         function* g1() { (yield) }
         function* g2() { [yield] }
-        function* g3() { return {yield} }
-        function* g4() { yield, yield; }
-        function* g5() { (yield) ? yield : yield; }
+        function* g3() { yield, yield; }
+        function* g4() { (yield) ? yield : yield; }
     }
 }
 
@@ -189,4 +187,67 @@ yield_sub: {
         }
     }
     expect_exact: 'function*foo(){yield x["foo"];(yield x)["foo"];yield(yield obj.foo())["bar"]()}'
+}
+
+yield_as_ES5_property: {
+    input: {
+        "use strict";
+        console.log({yield: 42}.yield);
+    }
+    expect_exact: '"use strict";console.log({yield:42}.yield);'
+    expect_stdout: "42"
+}
+
+issue_2689: {
+    options = {
+        collapse_vars: true,
+        unused: true,
+    }
+    input: {
+        function* y() {
+            var t = yield x();
+            return new t();
+        }
+    }
+    expect_exact: "function*y(){return new(yield x())}"
+}
+
+issue_2832: {
+    beautify = {
+        beautify: true,
+    }
+    input: {
+        function* gen(i) {
+            const result = yield (x = i, -x);
+            var x;
+            console.log(x);
+            console.log(result);
+            yield 2;
+        }
+        var x = gen(1);
+        console.log(x.next("first").value);
+        console.log(x.next("second").value);
+    }
+    expect_exact: [
+        "function* gen(i) {",
+        "    const result = yield (x = i, -x);",
+        "    var x;",
+        "    console.log(x);",
+        "    console.log(result);",
+        "    yield 2;",
+        "}",
+        "",
+        "var x = gen(1);",
+        "",
+        'console.log(x.next("first").value);',
+        "",
+        'console.log(x.next("second").value);',
+    ]
+    expect_stdout: [
+        "-1",
+        "1",
+        "second",
+        "2",
+    ]
+    node_version: ">=4"
 }

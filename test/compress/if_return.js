@@ -302,3 +302,191 @@ issue_1437_conditionals: {
         }
     }
 }
+
+issue_512: {
+    options = {
+        conditionals: true,
+        if_return: true,
+        sequences: true,
+        side_effects: true,
+    }
+    input: {
+        function a() {
+            if (b()) {
+                c();
+                return;
+            }
+            throw e;
+        }
+    }
+    expect: {
+        function a() {
+            if (!b()) throw e;
+            c();
+        }
+    }
+}
+
+issue_1317: {
+    options = {
+        if_return: true,
+    }
+    input: {
+        !function(a) {
+            if (a) return;
+            let b = 1;
+            function g() {
+                return b;
+            }
+            console.log(g());
+        }();
+    }
+    expect: {
+        !function(a) {
+            if (a) return;
+            let b = 1;
+            function g() {
+                return b;
+            }
+            console.log(g());
+        }();
+    }
+    expect_stdout: "1"
+    node_version: ">=6"
+}
+
+issue_1317_strict: {
+    options = {
+        if_return: true,
+    }
+    input: {
+        "use strict";
+        !function(a) {
+            if (a) return;
+            let b = 1;
+            function g() {
+                return b;
+            }
+            console.log(g());
+        }();
+    }
+    expect: {
+        "use strict";
+        !function(a) {
+            if (a) return;
+            let b = 1;
+            function g() {
+                return b;
+            }
+            console.log(g());
+        }();
+    }
+    expect_stdout: "1"
+    node_version: ">=4"
+}
+
+if_var_return: {
+    options = {
+        conditionals: true,
+        if_return: true,
+        join_vars: true,
+        sequences: true,
+    }
+    input: {
+        function f() {
+            var a;
+            return;
+            var b;
+        }
+        function g() {
+            var a;
+            if (u()) {
+                var b;
+                return v();
+                var c;
+            }
+            var d;
+            if (w()) {
+                var e;
+                return x();
+                var f;
+            } else {
+                var g;
+                y();
+                var h;
+            }
+            var i;
+            z();
+            var j;
+        }
+    }
+    expect: {
+        function f() {
+            var a, b;
+        }
+        function g() {
+            var a, b, c, d, e, f, g, h, i, j;
+            return u() ? v() : w() ? x() : (y(), z(), void 0);
+        }
+    }
+}
+
+if_if_return_return: {
+    options = {
+        conditionals: true,
+        if_return: true,
+    }
+    input: {
+        function f(a, b) {
+            if (a) {
+                if (b)
+                    return b;
+                return;
+            }
+            g();
+        }
+    }
+    expect: {
+        function f(a, b) {
+            if (a)
+                return b || void 0;
+            g();
+        }
+    }
+}
+
+issue_2747: {
+    options = {
+        conditionals: true,
+        if_return: true,
+        sequences: true,
+        unused: true,
+    }
+    input: {
+        "use strict";
+        function f(baz) {
+            if (baz === 0) {
+                return null;
+            }
+            let r;
+            if (baz > 2) {
+                r = 4;
+            } else {
+                r = 5;
+            }
+            return r;
+        }
+        console.log(f(0), f(1), f(3));
+    }
+    expect: {
+        "use strict";
+        function f(baz) {
+            if (0 === baz) return null;
+            let r;
+            return r = baz > 2 ? 4 : 5, r;
+        }
+        console.log(f(0), f(1), f(3));
+    }
+    expect_stdout: "null 5 4"
+    node_version: ">=4"
+}

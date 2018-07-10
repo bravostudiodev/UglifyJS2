@@ -1,5 +1,6 @@
 var assert = require("assert");
-var uglify = require("../../");
+var semver = require("semver");
+var uglify = require("../node");
 
 describe("Unicode", function() {
     it("Should not accept invalid code ranges in unicode escape", function() {
@@ -131,8 +132,41 @@ describe("Unicode", function() {
 
         for (var i = 0; i < tests.length; i++) {
             assert.strictEqual(uglify.minify(tests[i][0], {
-                fromString: true, output: { ascii_only: true, ecma: 6}
+                output: { ascii_only: true, ecma: 6 }
             }).code, tests[i][1]);
         }
     });
+
+    it("Should parse raw characters correctly", function() {
+        var ast = uglify.parse('console.log("\\udbff");');
+        assert.strictEqual(ast.print_to_string(), 'console.log("\\udbff");');
+        ast = uglify.parse(ast.print_to_string());
+        assert.strictEqual(ast.print_to_string(), 'console.log("\\udbff");');
+    });
+
+    if (semver.satisfies(process.version, ">=4")) {
+        it("Should not unescape unpaired surrogates", function() {
+            this.timeout(5000);
+            var code = [];
+            for (var i = 0; i <= 0x20001; i++) {
+                code.push("\\u{" + i.toString(16) + "}");
+            }
+            code = '"' + code.join() + '"';
+            [true, false].forEach(function(ascii_only) {
+                [5, 6].forEach(function(ecma) {
+                    var result = uglify.minify(code, {
+                        compress: false,
+                        mangle: false,
+                        output: {
+                            ascii_only: ascii_only
+                        },
+                        ecma: ecma
+                    });
+                    if (result.error) throw result.error;
+                    if (ecma > 5) assert.ok(code.length > result.code.length);
+                    assert.strictEqual(eval(code), eval(result.code));
+                });
+            });
+        });
+    }
 });

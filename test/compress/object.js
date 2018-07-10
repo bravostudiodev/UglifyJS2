@@ -105,7 +105,7 @@ getter_setter_mangler: {
             };
         }
     }
-    expect_exact: "function f(n,t){return{get:n,set:t,get g(){},set s(n){},c,a:1,m(){}}}"
+    expect_exact: "function f(t,e){return{get:t,set:e,get g(){},set s(t){},c,a:1,m(){}}}"
 }
 
 use_shorthand_opportunity: {
@@ -124,6 +124,67 @@ computed_property_names: {
         obj({ ["x" + "x"]: 6 });
     }
     expect_exact: 'obj({["x"+"x"]:6});'
+}
+
+convert_computed_props_to_regular_ones: {
+    options = {
+        booleans: true,
+        computed_props: true,
+        evaluate: true,
+    }
+    input: {
+        var o = {
+            ["hi"]: 0,
+            ["A" + 1]: 1,
+            [/B/]: 2,
+            [100 + 23]: 3,
+            [1 + .5]: 4,
+            [Math.PI]: 5,
+            [undefined]: 6,
+            [true]: 7,
+            [false]: 8,
+            [null]: 9,
+            [Infinity]: 10,
+            [NaN]: 11,
+        };
+        for (var k in o) {
+            console.log(k, o[k]);
+        }
+    }
+    expect: {
+        var o = {
+            hi: 0,
+            A1: 1,
+            [/B/]: 2,
+            123: 3,
+            1.5: 4,
+            [Math.PI]: 5,
+
+            // leave these problematic cases as is
+            [void 0]: 6,
+            [!0]: 7,
+            [!1]: 8,
+            [null]: 9,
+            [1 / 0]: 10,
+            [NaN]: 11
+        };
+        for (var k in o) console.log(k, o[k]);
+    }
+    expect_stdout: [
+        "123 3",
+        "hi 0",
+        "A1 1",
+        "/B/ 2",
+        "1.5 4",
+        "3.141592653589793 5",
+        "undefined 6",
+        "true 7",
+        "false 8",
+        "null 9",
+        "Infinity 10",
+        "NaN 11",
+    ]
+    node_version: ">=6"
 }
 
 computed_property_names_evaluated_1: {
@@ -157,16 +218,20 @@ computed_property_names_evaluated_2: {
 
 shorthand_properties: {
     mangle = true;
-    input: (function() {
-        var prop = 1;
-        const value = {prop};
-        return value;
-    })();
-    expect: (function() {
-        var n = 1;
-        const r = {prop:n};
-        return r;
-    })();
+    input: {
+        (function() {
+            var prop = 1;
+            const value = {prop};
+            return value;
+        })();
+    }
+    expect: {
+        (function() {
+            var n = 1;
+            const r = {prop:n};
+            return r;
+        })();
+    }
 }
 
 concise_methods: {
@@ -233,9 +298,7 @@ concise_methods_with_computed_property2: {
         };
         doSomething(foo[[1]]());
     }
-    expect_exact: {
-        'var foo={[[1]](){return"success"}};doSomething(foo[[1]]());'
-    }
+    expect_exact: 'var foo={[[1]](){return"success"}};doSomething(foo[[1]]());'
 }
 
 concise_methods_with_various_property_names: {
@@ -282,9 +345,11 @@ concise_methods_with_various_property_names: {
 }
 
 concise_methods_and_mangle_props: {
-    mangle_props = {
-        regex: /_/
-    };
+    mangle = {
+        properties: {
+            regex: /_/,
+        },
+    }
     input: {
         function x() {
             obj = {
@@ -295,7 +360,7 @@ concise_methods_and_mangle_props: {
     expect: {
         function x() {
             obj = {
-                a() { return 1; }
+                o() { return 1; }
             }
         }
     }
@@ -507,4 +572,444 @@ variable_as_computed_property: {
         }
     }
     expect_exact: "function getLine(header){return{[header]:{}}}"
+}
+
+prop_func_to_concise_method: {
+    options = {
+        ecma: 6,
+        unsafe_methods: true,
+    }
+    input: {
+        ({
+            emit: function NamedFunctionExpression() {
+                console.log("PASS");
+            },
+            run: function() {
+                this.emit();
+            }
+        }).run();
+    }
+    expect: {
+        ({
+            emit: function NamedFunctionExpression() {
+                console.log("PASS");
+            },
+            run() {
+                this.emit();
+            }
+        }).run();
+    }
+    expect_stdout: "PASS"
+    node_version: ">=6"
+}
+
+prop_arrow_to_concise_method: {
+    options = {
+        ecma: 6,
+        unsafe_methods: true,
+    }
+    input: {
+        ({
+            run: () => {
+                console.log("PASS");
+            }
+        }).run();
+    }
+    expect: {
+        ({
+            run() {
+                console.log("PASS");
+            }
+        }).run();
+    }
+    expect_stdout: "PASS"
+    node_version: ">=6"
+}
+
+concise_method_to_prop_arrow: {
+    options = {
+        arrows: true,
+        ecma: 6,
+    }
+    input: {
+        console.log(({ a: () => 1 }).a());
+        console.log(({ a: () => { return 2; } }).a());
+        console.log(({ a() { return 3; } }).a());
+        console.log(({ a() { return this.b; }, b: 4 }).a());
+    }
+    expect: {
+        console.log({ a: () => 1 }.a());
+        console.log({ a: () => 2 }.a());
+        console.log({ a: () => 3 }.a());
+        console.log({ a() { return this.b; }, b: 4 }.a());
+    }
+    expect_stdout: [
+        "1",
+        "2",
+        "3",
+        "4",
+    ]
+    node_version: ">=4"
+}
+
+prop_func_to_async_concise_method: {
+    options = {
+        ecma: 8,
+        unsafe_methods: true,
+    }
+    input: {
+        ({
+            run: async function() {
+                console.log("PASS");
+            }
+        }).run();
+    }
+    expect: {
+        ({
+            async run() {
+                console.log("PASS");
+            }
+        }).run();
+    }
+    expect_stdout: "PASS"
+    node_version: ">=8"
+}
+
+prop_func_to_concise_method_various: {
+    options = {
+        ecma: 6,
+        unsafe_methods: true,
+    }
+    input: {
+        ({
+            null: function(x, y){ x(y); },
+            123: function(x, y){ x(y); },
+            "A B": function(x, y){ x(y); },
+            p1: function(x, y){ x(y); },
+            p2: function*(x, y){ yield x(y); },
+            p3: async function(x, y){ await x(y); },
+            [c1]: function(x, y){ x(y); },
+            [c2]: function*(x, y){ yield x(y); },
+            [c3]: async function(x, y){ await x(y); },
+        });
+    }
+    expect: {
+        ({
+            null(x, y) { x(y); },
+            123(x, y) { x(y); },
+            "A B"(x, y) { x(y); },
+            p1(x, y) { x(y); },
+            *p2(x, y) { yield x(y); },
+            async p3(x, y) { await x(y); },
+            [c1](x, y) { x(y); },
+            *[c2](x, y) { yield x(y); },
+            async [c3](x, y) { await x(y); },
+        });
+    }
+}
+
+prop_arrows_to_concise_method_various: {
+    options = {
+        ecma: 6,
+        unsafe_methods: true,
+    }
+    input: {
+        ({
+            null: (x, y) => { x(y); },
+            123: (x, y) => { x(y); },
+            "A B": (x, y) => { x(y); },
+            p1: (x, y) => { x(y); },
+            p3: async (x, y) => { await x(y); },
+            [c1]: (x, y) => { x(y); },
+            [c3]: async (x, y) => { await x(y); },
+        });
+    }
+    expect: {
+        ({
+            null(x, y) { x(y); },
+            123(x, y) { x(y); },
+            "A B"(x, y) { x(y); },
+            p1(x, y) { x(y); },
+            async p3(x, y) { await x(y); },
+            [c1](x, y) { x(y); },
+            async [c3](x, y) { await x(y); },
+        });
+    }
+}
+
+prop_arrow_with_this: {
+    options = {
+        ecma: 6,
+        unsafe_methods: true,
+    }
+    input: {
+        function run(arg) {
+            console.log(arg === this ? "global" : arg === foo ? "foo" : arg);
+        }
+        var foo = {
+            func_no_this: function() { run(); },
+            func_with_this: function() { run(this); },
+            arrow_no_this: () => { run(); },
+            arrow_with_this: () => { run(this); },
+        };
+        for (var key in foo) foo[key]();
+    }
+    expect: {
+        function run(arg) {
+            console.log(arg === this ? "global" : arg === foo ? "foo" : arg);
+        }
+        var foo = {
+            func_no_this() { run(); },
+            func_with_this() { run(this); },
+            arrow_no_this() { run(); },
+            arrow_with_this: () => { run(this); },
+        };
+        for (var key in foo) foo[key]();
+    }
+    expect_stdout: [
+        "undefined",
+        "foo",
+        "undefined",
+        "global",
+    ]
+    node_version: ">=4"
+}
+
+prop_arrow_with_nested_this: {
+    options = {
+        ecma: 6,
+        unsafe_methods: true,
+    }
+    input: {
+        function run(arg) {
+            console.log(arg === this ? "global" : arg === foo ? "foo" : arg);
+        }
+        var foo = {
+            func_func_this: function() { (function() { run(this); })(); },
+            func_arrow_this: function() { (() => { run(this); })(); },
+            arrow_func_this: () => { (function() { run(this); })(); },
+            arrow_arrow_this: () => { (() => { run(this); })(); },
+        };
+        for (var key in foo) foo[key]();
+    }
+    expect: {
+        function run(arg) {
+            console.log(arg === this ? "global" : arg === foo ? "foo" : arg);
+        }
+        var foo = {
+            func_func_this() { (function() { run(this); })(); },
+            func_arrow_this() { (() => { run(this); })(); },
+            arrow_func_this() { (function() { run(this); })(); },
+            arrow_arrow_this: () => { (() => { run(this); })(); },
+        };
+        for (var key in foo) foo[key]();
+    }
+    expect_stdout: [
+        "global",
+        "foo",
+        "global",
+        "global",
+    ]
+    node_version: ">=4"
+}
+
+issue_2554_1: {
+    options = {
+        computed_props: true,
+        evaluate: true,
+    }
+    input: {
+        var obj = {
+            ["x" + ""]: 1,
+            ["method" + ""]() {
+                this.s = "PASS";
+            },
+            get ["g" + ""]() {
+                return this.x;
+            },
+            set ["s" + ""](value) {
+                this.x = value;
+            }
+        };
+        obj.method();
+        console.log(obj.g);
+    }
+    expect: {
+        var obj = {
+            x: 1,
+            method() {
+                this.s = "PASS";
+            },
+            get g() {
+                return this.x;
+            },
+            set s(value) {
+                this.x = value;
+            }
+        };
+        obj.method();
+        console.log(obj.g);
+    }
+    expect_stdout: "PASS"
+    node_version: ">=4"
+}
+
+issue_2554_2: {
+    options = {
+        computed_props: true,
+        evaluate: true,
+    }
+    input: {
+        var instance = new class {
+            constructor() {
+                this.x = 2;
+            }
+            ["method" + ""]() {
+                this.s = "PASS";
+            }
+            get ["g" + ""]() {
+                return this.x;
+            }
+            set ["s" + ""](value) {
+                this.x = value;
+            }
+        }();
+        instance.method();
+        console.log(instance.g);
+    }
+    expect: {
+        var instance = new class {
+            constructor() {
+                this.x = 2;
+            }
+            method() {
+                this.s = "PASS";
+            }
+            get g() {
+                return this.x;
+            }
+            set s(value) {
+                this.x = value;
+            }
+        }();
+        instance.method();
+        console.log(instance.g);
+    }
+    expect_stdout: "PASS"
+    node_version: ">=6"
+}
+
+issue_2554_3: {
+    options = {
+        computed_props: true,
+        evaluate: true,
+    }
+    input: {
+        var foo = {
+            [1 + 0]: 1,
+            [2 + 0]() {
+                this[4] = "PASS";
+            },
+            get [3 + 0]() {
+                return this[1];
+            },
+            set [4 + 0](value) {
+                this[1] = value;
+            }
+        };
+        foo[2]();
+        console.log(foo[3]);
+    }
+    expect: {
+        var foo = {
+            1: 1,
+            2() {
+                this[4] = "PASS";
+            },
+            get 3() {
+                return this[1];
+            },
+            set 4(value) {
+                this[1] = value;
+            }
+        };
+        foo[2]();
+        console.log(foo[3]);
+    }
+    expect_stdout: "PASS"
+    node_version: ">=4"
+}
+
+issue_2554_4: {
+    options = {
+        computed_props: true,
+        evaluate: true,
+    }
+    input: {
+        var bar = new class {
+            constructor() {
+                this[1] = 2;
+            }
+            [2 + 0]() {
+                this[4] = "PASS";
+            }
+            get [3 + 0]() {
+                return this[1];
+            }
+            set [4 + 0](value) {
+                this[1] = value;
+            }
+        }();
+        bar[2]();
+        console.log(bar[3]);
+    }
+    expect: {
+        var bar = new class {
+            constructor() {
+                this[1] = 2;
+            }
+            2() {
+                this[4] = "PASS";
+            }
+            get 3() {
+                return this[1];
+            }
+            set 4(value) {
+                this[1] = value;
+            }
+        }();
+        bar[2]();
+        console.log(bar[3]);
+    }
+    expect_stdout: "PASS"
+    node_version: ">=6"
+}
+
+issue_2554_5: {
+    options = {
+        computed_props: true,
+        evaluate: true,
+    }
+    input: {
+        new class {
+            ["constructor"]() {
+                console.log("FAIL");
+            }
+            "constructor"() {
+                console.log("PASS");
+            }
+        }();
+    }
+    expect: {
+        new class {
+            ["constructor"]() {
+                console.log("FAIL");
+            }
+            constructor() {
+                console.log("PASS");
+            }
+        }();
+    }
+    expect_stdout: "PASS"
+    node_version: ">=6"
 }

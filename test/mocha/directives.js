@@ -1,5 +1,5 @@
 var assert = require("assert");
-var uglify = require("../../");
+var uglify = require("../node");
 
 describe("Directives", function() {
     it ("Should allow tokenizer to store directives state", function() {
@@ -186,7 +186,7 @@ describe("Directives", function() {
     });
 
     it("Should test EXPECT_DIRECTIVE RegExp", function() {
-        var tests = [
+        [
             ["", true],
             ["'test';", true],
             ["'test';;", true],
@@ -195,18 +195,19 @@ describe("Directives", function() {
             ["'tests';   \n\t", true],
             ["'tests';\n\n", true],
             ["\n\n\"use strict\";\n\n", true]
-        ];
-
-        for (var i = 0; i < tests.length; i++) {
-            assert.strictEqual(uglify.EXPECT_DIRECTIVE.test(tests[i][0]), tests[i][1], tests[i][0]);
-        }
+        ].forEach(function(test) {
+            var out = uglify.OutputStream();
+            out.print(test[0]);
+            out.print_string("", null, true);
+            assert.strictEqual(out.get() === test[0] + ';""', test[1], test[0]);
+        });
     });
 
     it("Should only print 2 semicolons spread over 2 lines in beautify mode", function() {
         assert.strictEqual(
             uglify.minify(
                 '"use strict";\'use strict\';"use strict";"use strict";;\'use strict\';console.log(\'use strict\');',
-                {fromString: true, output: {beautify: true, quote_style: 3}, compress: false}
+                {output: {beautify: true, quote_style: 3}, compress: false}
             ).code,
             '"use strict";\n\n\'use strict\';\n\n"use strict";\n\n"use strict";\n\n;\'use strict\';\n\nconsole.log(\'use strict\');'
         );
@@ -234,7 +235,7 @@ describe("Directives", function() {
 
         for (var i = 0; i < tests.length; i++) {
             assert.strictEqual(
-                uglify.minify(tests[i][0], {fromString: true, quote_style: 3, compress: false, mangle: false}).code,
+                uglify.minify(tests[i][0], {compress: false, mangle: false}).code,
                 tests[i][1],
                 tests[i][0]
             );
@@ -243,7 +244,7 @@ describe("Directives", function() {
 
     it("Should add double semicolon when relying on automatic semicolon insertion", function() {
         var code = uglify.minify('"use strict";"use\\x20strict";',
-            {fromString: true, output: {semicolons: false}, compress: false}
+            {output: {semicolons: false}, compress: false}
         ).code;
         assert.strictEqual(code, '"use strict";;"use strict"\n');
     });
@@ -349,7 +350,7 @@ describe("Directives", function() {
         ];
         for (var i = 0; i < tests.length; i++) {
             assert.strictEqual(
-                uglify.minify(tests[i][0], {fromString: true, output:{quote_style: tests[i][1]}, compress: false}).code,
+                uglify.minify(tests[i][0], {output:{quote_style: tests[i][1]}, compress: false}).code,
                 tests[i][2],
                 tests[i][0] + " using mode " + tests[i][1]
             );
@@ -360,18 +361,28 @@ describe("Directives", function() {
         var tests = [
             [
                 '"use strict";"use strict";"use strict";"use foo";"use strict";;"use sloppy";doSomething("foo");',
-                '"use strict";"use foo";doSomething("foo");'
+                '"use strict";"use foo";doSomething("foo");',
+                'function f(){ "use strict" }',
+                'function f(){ "use asm" }',
+                'function f(){ "use nondirective" }',
+                'function f(){ ;"use strict" }',
+                'function f(){ "use \n"; }',
             ],
             [
                  // Nothing gets optimised in the compressor because "use asm" is the first statement
                 '"use asm";"use\\x20strict";1+1;',
-                '"use asm";;"use strict";1+1;' // Yet, the parser noticed that "use strict" wasn't a directive
+                '"use asm";;"use strict";1+1;', // Yet, the parser noticed that "use strict" wasn't a directive
+                'function f(){"use strict"}',
+                'function f(){"use asm"}',
+                'function f(){"use nondirective"}',
+                'function f(){}',
+                'function f(){}',
             ]
         ];
 
         for (var i = 0; i < tests.length; i++) {
             assert.strictEqual(
-                uglify.minify(tests[i][0], {fromString: true, compress: {collapse_vars: true, side_effects: true}}).code,
+                uglify.minify(tests[i][0]).code,
                 tests[i][1],
                 tests[i][0]
             );
@@ -397,7 +408,7 @@ describe("Directives", function() {
             if (node instanceof uglify.AST_Symbol && node.name === "_check_") {
                 checked = true;
                 for (var j = 0; j < tests[i].directives.length; j++) {
-                    assert.equal(checkWalker.has_directive(tests[i].directives[j]), true,
+                    assert.ok(checkWalker.has_directive(tests[i].directives[j]),
                         "Did not found directive '" + tests[i].directives[j] +  "' in test " + tests[i].input)
                 }
                 for (var k = 0; k < tests[i].non_directives.length; k++) {

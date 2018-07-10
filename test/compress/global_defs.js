@@ -37,6 +37,7 @@ object: {
                 VALUE: 42,
             },
         },
+        side_effects: true,
         unsafe: true,
     }
     input: {
@@ -140,8 +141,59 @@ mixed: {
         console.log(CONFIG);
     }
     expect_warnings: [
-        'WARN: global_defs CONFIG.VALUE redefined [test/compress/global_defs.js:126,22]',
         'WARN: global_defs CONFIG.VALUE redefined [test/compress/global_defs.js:127,22]',
-        'WARN: global_defs CONFIG.VALUE redefined [test/compress/global_defs.js:129,8]',
+        'WARN: global_defs CONFIG.VALUE redefined [test/compress/global_defs.js:128,22]',
+        'WARN: global_defs CONFIG.VALUE redefined [test/compress/global_defs.js:130,8]',
     ]
+}
+
+issue_1801: {
+    options = {
+        booleans: true,
+        global_defs: {
+            "CONFIG.FOO.BAR": true,
+        },
+    }
+    input: {
+        console.log(CONFIG.FOO.BAR);
+    }
+    expect: {
+        console.log(!0);
+    }
+}
+
+issue_1986: {
+    options = {
+        global_defs: {
+            "@alert": "console.log",
+        },
+    }
+    input: {
+        alert(42);
+    }
+    expect: {
+        console.log(42);
+    }
+}
+
+issue_2167: {
+    options = {
+        conditionals: true,
+        dead_code: true,
+        evaluate: true,
+        global_defs: {
+            "@isDevMode": "function(){}",
+        },
+        passes: 2,
+        side_effects: true,
+    }
+    input: {
+        if (isDevMode()) {
+            greetOverlord();
+        }
+        doWork();
+    }
+    expect: {
+        doWork();
+    }
 }

@@ -1,7 +1,8 @@
 keep_properties: {
     options = {
-        properties: false
-    };
+        evaluate: true,
+        properties: false,
+    }
     input: {
         a["foo"] = "bar";
     }
@@ -12,9 +13,12 @@ keep_properties: {
 
 dot_properties: {
     options = {
+        evaluate: true,
         properties: true,
-        screw_ie8: false
-    };
+    }
+    beautify = {
+        ie8: true,
+    }
     input: {
         a["foo"] = "bar";
         a["if"] = "if";
@@ -35,9 +39,12 @@ dot_properties: {
 
 dot_properties_es5: {
     options = {
+        evaluate: true,
         properties: true,
-        screw_ie8: true
-    };
+    }
+    beautify = {
+        ie8: false,
+    }
     input: {
         a["foo"] = "bar";
         a["if"] = "if";
@@ -57,8 +64,8 @@ dot_properties_es5: {
 sub_properties: {
     options = {
         evaluate: true,
-        properties: true
-    };
+        properties: true,
+    }
     input: {
         a[0] = 0;
         a["0"] = 1;
@@ -77,18 +84,18 @@ sub_properties: {
         a[3.14] = 3;
         a.if = 4;
         a["foo bar"] = 5;
-        a[NaN] = 6;
-        a[null] = 7;
+        a.NaN = 6;
+        a.null = 7;
         a[void 0] = 8;
     }
 }
 
 evaluate_array_length: {
     options = {
+        evaluate: true,
         properties: true,
         unsafe: true,
-        evaluate: true
-    };
+    }
     input: {
         a = [1, 2, 3].length;
         a = [1, 2, 3].join()["len" + "gth"];
@@ -105,10 +112,10 @@ evaluate_array_length: {
 
 evaluate_string_length: {
     options = {
+        evaluate: true,
         properties: true,
         unsafe: true,
-        evaluate: true
-    };
+    }
     input: {
         a = "foo".length;
         a = ("foo" + "bar")["len" + "gth"];
@@ -124,9 +131,11 @@ evaluate_string_length: {
 }
 
 mangle_properties: {
-    mangle_props = {
-        ignore_quoted: false
-    };
+    mangle = {
+        properties: {
+            keep_quoted: false,
+        },
+    }
     input: {
         a["foo"] = "bar";
         a.color = "red";
@@ -137,19 +146,22 @@ mangle_properties: {
     expect: {
         a["a"] = "bar";
         a.b = "red";
-        x = {c: 10};
-        a.d(x.c, a.a);
-        a['d']({b: "blue", a: "baz"});
+        x = {o: 10};
+        a.r(x.o, a.a);
+        a['r']({b: "blue", a: "baz"});
     }
 }
 
 mangle_unquoted_properties: {
     options = {
-        properties: false
+        evaluate: true,
+        properties: false,
     }
-    mangle_props = {
-        ignore_quoted: true,
-        reserved: []
+    mangle = {
+        properties: {
+            builtins: true,
+            keep_quoted: true,
+        },
     }
     beautify = {
         beautify: false,
@@ -178,24 +190,26 @@ mangle_unquoted_properties: {
         function f1() {
             a["foo"] = "bar";
             a.color = "red";
-            a.b = 2;
-            x = {"bar": 10, c: 7};
-            a.c = 9;
+            a.r = 2;
+            x = {"bar": 10, b: 7};
+            a.b = 9;
         }
         function f2() {
             a.foo = "bar";
             a['color'] = "red";
-            x = {bar: 10, c: 7};
-            a.c = 9;
-            a.b = 3;
+            x = {bar: 10, b: 7};
+            a.b = 9;
+            a.r = 3;
         }
     }
 }
 
 mangle_debug: {
-    mangle_props = {
-        debug: ""
-    };
+    mangle = {
+        properties: {
+            debug: "",
+        },
+    }
     input: {
         a.foo = "bar";
         x = { baz: "ban" };
@@ -207,9 +221,11 @@ mangle_debug: {
 }
 
 mangle_debug_true: {
-    mangle_props = {
-        debug: true
-    };
+    mangle = {
+        properties: {
+            debug: true,
+        },
+    }
     input: {
         a.foo = "bar";
         x = { baz: "ban" };
@@ -221,9 +237,11 @@ mangle_debug_true: {
 }
 
 mangle_debug_suffix: {
-    mangle_props = {
-        debug: "XYZ"
-    };
+    mangle = {
+        properties: {
+            debug: "XYZ",
+        },
+    }
     input: {
         a.foo = "bar";
         x = { baz: "ban" };
@@ -234,14 +252,18 @@ mangle_debug_suffix: {
     }
 }
 
-mangle_debug_suffix_ignore_quoted: {
+mangle_debug_suffix_keep_quoted: {
     options = {
-        properties: false
+        evaluate: true,
+        properties: false,
     }
-    mangle_props = {
-        ignore_quoted: true,
-        debug: "XYZ",
-        reserved: []
+    mangle = {
+        properties: {
+            builtins: true,
+            debug: "XYZ",
+            keep_quoted: true,
+            reserved: [],
+        },
     }
     beautify = {
         beautify: false,
@@ -547,12 +569,1328 @@ native_prototype: {
     }
     input: {
         Array.prototype.splice.apply(a, [1, 2, b, c]);
+        Function.prototype.call.apply(console.log, console, [ "foo" ]);
+        Number.prototype.toFixed.call(Math.PI, 2);
         Object.prototype.hasOwnProperty.call(d, "foo");
+        RegExp.prototype.test.call(/foo/, "bar");
         String.prototype.indexOf.call(e, "bar");
     }
     expect: {
         [].splice.apply(a, [1, 2, b, c]);
+        (function() {}).call.apply(console.log, console, [ "foo" ]);
+        0..toFixed.call(Math.PI, 2);
         ({}).hasOwnProperty.call(d, "foo");
+        /t/.test.call(/foo/, "bar");
         "".indexOf.call(e, "bar");
     }
+}
+
+native_prototype_lhs: {
+    options = {
+        unsafe_proto: true,
+    }
+    input: {
+        console.log(function() {
+            Function.prototype.bar = "PASS";
+            return function() {};
+        }().bar);
+    }
+    expect: {
+        console.log(function() {
+            Function.prototype.bar = "PASS";
+            return function() {};
+        }().bar);
+    }
+    expect_stdout: "PASS"
+}
+
+accessor_boolean: {
+    input: {
+        var a = 1;
+        var b = {
+            get true() {
+                return a;
+            },
+            set false(c) {
+                a = c;
+            }
+        };
+        console.log(b.true, b.false = 2, b.true);
+    }
+    expect_exact: 'var a=1;var b={get true(){return a},set false(c){a=c}};console.log(b.true,b.false=2,b.true);'
+    expect_stdout: "1 2 2"
+}
+
+accessor_get_set: {
+    input: {
+        var a = 1;
+        var b = {
+            get set() {
+                return a;
+            },
+            set get(c) {
+                a = c;
+            }
+        };
+        console.log(b.set, b.get = 2, b.set);
+    }
+    expect_exact: 'var a=1;var b={get set(){return a},set get(c){a=c}};console.log(b.set,b.get=2,b.set);'
+    expect_stdout: "1 2 2"
+}
+
+accessor_null_undefined: {
+    input: {
+        var a = 1;
+        var b = {
+            get null() {
+                return a;
+            },
+            set undefined(c) {
+                a = c;
+            }
+        };
+        console.log(b.null, b.undefined = 2, b.null);
+    }
+    expect_exact: 'var a=1;var b={get null(){return a},set undefined(c){a=c}};console.log(b.null,b.undefined=2,b.null);'
+    expect_stdout: "1 2 2"
+}
+
+accessor_number: {
+    input: {
+        var a = 1;
+        var b = {
+            get 42() {
+                return a;
+            },
+            set 42(c) {
+                a = c;
+            }
+        };
+        console.log(b[42], b[42] = 2, b[42]);
+    }
+    expect_exact: 'var a=1;var b={get 42(){return a},set 42(c){a=c}};console.log(b[42],b[42]=2,b[42]);'
+    expect_stdout: "1 2 2"
+}
+
+accessor_string: {
+    input: {
+        var a = 1;
+        var b = {
+            get "a-b"() {
+                return a;
+            },
+            set "a-b"(c) {
+                a = c;
+            }
+        };
+        console.log(b["a-b"], b["a-b"] = 2, b["a-b"]);
+    }
+    expect_exact: 'var a=1;var b={get"a-b"(){return a},set"a-b"(c){a=c}};console.log(b["a-b"],b["a-b"]=2,b["a-b"]);'
+    expect_stdout: "1 2 2"
+}
+
+accessor_this: {
+    input: {
+        var a = 1;
+        var b = {
+            get this() {
+                return a;
+            },
+            set this(c) {
+                a = c;
+            }
+        };
+        console.log(b.this, b.this = 2, b.this);
+    }
+    expect_exact: 'var a=1;var b={get this(){return a},set this(c){a=c}};console.log(b.this,b.this=2,b.this);'
+    expect_stdout: "1 2 2"
+}
+
+issue_2208_1: {
+    options = {
+        inline: true,
+        properties: true,
+        side_effects: true,
+    }
+    input: {
+        console.log({
+            p: function() {
+                return 42;
+            }
+        }.p());
+    }
+    expect: {
+        console.log(42);
+    }
+    expect_stdout: "42"
+}
+
+issue_2208_2: {
+    options = {
+        inline: true,
+        properties: true,
+        side_effects: true,
+    }
+    input: {
+        console.log({
+            a: 42,
+            p: function() {
+                return this.a;
+            }
+        }.p());
+    }
+    expect: {
+        console.log({
+            a: 42,
+            p: function() {
+                return this.a;
+            }
+        }.p());
+    }
+    expect_stdout: "42"
+}
+
+issue_2208_3: {
+    options = {
+        inline: true,
+        properties: true,
+        side_effects: true,
+    }
+    input: {
+        a = 42;
+        console.log({
+            p: function() {
+                return function() {
+                    return this.a;
+                }();
+            }
+        }.p());
+    }
+    expect: {
+        a = 42;
+        console.log(function() {
+            return this.a;
+        }());
+    }
+    expect_stdout: "42"
+}
+
+issue_2208_4: {
+    options = {
+        inline: true,
+        properties: true,
+        side_effects: true,
+    }
+    input: {
+        function foo() {}
+        console.log({
+            a: foo(),
+            p: function() {
+                return 42;
+            }
+        }.p());
+    }
+    expect: {
+        function foo() {}
+        console.log((foo(), function() {
+            return 42;
+        })());
+    }
+    expect_stdout: "42"
+}
+
+issue_2208_5: {
+    options = {
+        inline: true,
+        properties: true,
+        side_effects: true,
+    }
+    input: {
+        console.log({
+            p: "FAIL",
+            p: function() {
+                return 42;
+            }
+        }.p());
+    }
+    expect: {
+        console.log(42);
+    }
+    expect_stdout: "42"
+}
+
+issue_2208_6: {
+    options = {
+        inline: true,
+        properties: true,
+        side_effects: true,
+    }
+    input: {
+        console.log({
+            p: () => 42
+        }.p());
+    }
+    expect: {
+        console.log(42);
+    }
+    expect_stdout: "42"
+    node_version: ">=4"
+}
+
+issue_2208_7: {
+    options = {
+        ecma: 6,
+        inline: true,
+        properties: true,
+        side_effects: true,
+        unsafe_arrows: true,
+    }
+    input: {
+        console.log({
+            p() {
+                return 42;
+            }
+        }.p());
+    }
+    expect: {
+        console.log(42);
+    }
+    expect_stdout: "42"
+    node_version: ">=4"
+}
+
+issue_2208_8: {
+    options = {
+        ecma: 6,
+        inline: true,
+        properties: true,
+        side_effects: true,
+        unsafe_arrows: true,
+    }
+    input: {
+        console.log({
+            *p() {
+                return x();
+            }
+        }.p());
+        console.log({
+            async p() {
+                return await x();
+            }
+        }.p());
+    }
+    expect: {
+        console.log({
+            *p() {
+                return x();
+            }
+        }.p());
+        console.log((async () => {
+            return await x();
+        })());
+    }
+}
+
+issue_2208_9: {
+    options = {
+        inline: true,
+        properties: true,
+        side_effects: true,
+    }
+    input: {
+        a = 42;
+        console.log({
+            p: () => {
+                return function() {
+                    return this.a;
+                }();
+            }
+        }.p());
+    }
+    expect: {
+        a = 42;
+        console.log(function() {
+            return this.a;
+        }());
+    }
+    expect_stdout: "42"
+    node_version: ">=4"
+}
+
+methods_keep_quoted_true: {
+    options = {
+        arrows: true,
+        ecma: 6,
+        unsafe_methods: true,
+    }
+    mangle = {
+        properties: {
+            keep_quoted: true,
+        },
+    }
+    input: {
+        class C { "Quoted"(){} Unquoted(){} }
+        f1({ "Quoted"(){}, Unquoted(){}, "Prop": 3 });
+        f2({ "Quoted": function(){} });
+        f3({ "Quoted": ()=>{} });
+    }
+    expect_exact: "class C{Quoted(){}o(){}}f1({Quoted(){},o(){},Prop:3});f2({Quoted(){}});f3({Quoted(){}});"
+}
+
+methods_keep_quoted_false: {
+    options = {
+        arrows: true,
+        ecma: 6,
+        unsafe_methods: true,
+    }
+    mangle = {
+        properties: {
+            keep_quoted: false,
+        },
+    }
+    input: {
+        class C { "Quoted"(){} Unquoted(){} }
+        f1({ "Quoted"(){}, Unquoted(){}, "Prop": 3 });
+        f2({ "Quoted": function(){} });
+        f3({ "Quoted": ()=>{} });
+    }
+    expect_exact: "class C{o(){}d(){}}f1({o(){},d(){},e:3});f2({o(){}});f3({o(){}});"
+}
+
+methods_keep_quoted_from_dead_code: {
+    options = {
+        arrows: true,
+        booleans: true,
+        conditionals: true,
+        dead_code: true,
+        ecma: 6,
+        evaluate: true,
+        reduce_funcs: true,
+        reduce_vars: true,
+        side_effects: true,
+        unsafe_methods: true,
+    }
+    mangle = {
+        properties: {
+            keep_quoted: true,
+        },
+    }
+    input: {
+        class C { Quoted(){} Unquoted(){} }
+        f1({ Quoted(){}, Unquoted(){}, "Prop": 3 });
+        f2({ Quoted: function(){} });
+        f3({ Quoted: ()=>{} });
+        0 && obj["Quoted"];
+    }
+    expect_exact: "class C{Quoted(){}o(){}}f1({Quoted(){},o(){},Prop:3});f2({Quoted(){}});f3({Quoted(){}});"
+}
+
+issue_2256: {
+    options = {
+        side_effects: true,
+    }
+    mangle = {
+        properties: {
+            keep_quoted: true,
+        },
+    }
+    input: {
+        ({ "keep": 1 });
+        g.keep = g.change;
+    }
+    expect: {
+        g.keep = g.g;
+    }
+}
+
+issue_2321: {
+    options = {
+        ecma: 6,
+        unsafe_methods: false,
+    }
+    input: {
+        var f = {
+            foo: function(){ console.log("foo") },
+            bar() { console.log("bar") }
+        };
+        var foo = new f.foo();
+        var bar =     f.bar();
+    }
+    expect: {
+        var f = {
+            foo: function() {
+                console.log("foo");
+            },
+            bar() {
+                console.log("bar");
+            }
+        };
+        var foo = new f.foo();
+        var bar = f.bar();
+    }
+    expect_stdout: [
+        "foo",
+        "bar",
+    ]
+    node_version: ">=6"
+}
+
+unsafe_methods_regex: {
+    options = {
+        ecma: 6,
+        unsafe_methods: /^[A-Z1]/,
+    }
+    input: {
+        var f = {
+            123: function(){ console.log("123") },
+            foo: function(){ console.log("foo") },
+            bar() { console.log("bar") },
+            Baz: function(){ console.log("baz") },
+            BOO: function(){ console.log("boo") },
+            null: function(){ console.log("null") },
+            undefined: function(){ console.log("undefined") },
+        };
+        f[123]();
+        new f.foo();
+        f.bar();
+        f.Baz();
+        f.BOO();
+        new f.null();
+        new f.undefined();
+    }
+    expect: {
+        var f = {
+            123() { console.log("123") },
+            foo: function(){ console.log("foo") },
+            bar() { console.log("bar"); },
+            Baz() { console.log("baz") },
+            BOO() { console.log("boo") },
+            null: function(){ console.log("null") },
+            undefined: function(){ console.log("undefined") },
+        };
+        f[123]();
+        new f.foo();
+        f.bar();
+        f.Baz();
+        f.BOO();
+        new f.null();
+        new f.undefined();
+    }
+    expect_stdout: [
+        "123",
+        "foo",
+        "bar",
+        "baz",
+        "boo",
+        "null",
+        "undefined",
+    ]
+    node_version: ">=6"
+}
+
+lhs_prop_1: {
+    options = {
+        evaluate: true,
+        properties: true,
+    }
+    input: {
+        console.log(++{
+            a: 1
+        }.a);
+    }
+    expect: {
+        console.log(++{
+            a: 1
+        }.a);
+    }
+    expect_stdout: "2"
+}
+
+lhs_prop_2: {
+    options = {
+        evaluate: true,
+        inline: true,
+        properties: true,
+        reduce_funcs: true,
+        reduce_vars: true,
+        side_effects: true,
+        unused: true,
+    }
+    input: {
+        [1][0] = 42;
+        (function(a) {
+            a.b = "g";
+        })("abc");
+        (function(a) {
+            a[2] = "g";
+        })("def");
+        (function(a) {
+            a[""] = "g";
+        })("ghi");
+    }
+    expect: {
+        [1][0] = 42;
+        "abc".b = "g";
+        "def"[2] = "g";
+        "ghi"[""] = "g";
+    }
+}
+
+literal_duplicate_key_side_effects: {
+    options = {
+        properties: true,
+        side_effects: true,
+    }
+    input: {
+        console.log({
+            a: "FAIL",
+            a: console.log ? "PASS" : "FAIL"
+        }.a);
+    }
+    expect: {
+        console.log(console.log ? "PASS" : "FAIL");
+    }
+    expect_stdout: "PASS"
+}
+
+prop_side_effects_1: {
+    options = {
+        evaluate: true,
+        inline: true,
+        properties: true,
+        reduce_funcs: true,
+        reduce_vars: true,
+        side_effects: true,
+        toplevel: true,
+        unused: true,
+    }
+    input: {
+        var C = 1;
+        console.log(C);
+        var obj = {
+            bar: function() {
+                return C + C;
+            }
+        };
+        console.log(obj.bar());
+    }
+    expect: {
+        console.log(1);
+        var obj = {
+            bar: function() {
+                return 2;
+            }
+        };
+        console.log(obj.bar());
+    }
+    expect_stdout: [
+        "1",
+        "2",
+    ]
+}
+
+prop_side_effects_2: {
+    options = {
+        evaluate: true,
+        inline: true,
+        passes: 2,
+        properties: true,
+        reduce_funcs: true,
+        reduce_vars: true,
+        side_effects: true,
+        toplevel: true,
+        unused: true,
+    }
+    input: {
+        var C = 1;
+        console.log(C);
+        var obj = {
+            "": function() {
+                return C + C;
+            }
+        };
+        console.log(obj[""]());
+    }
+    expect: {
+        console.log(1);
+        console.log(2);
+    }
+    expect_stdout: [
+        "1",
+        "2",
+    ]
+}
+
+accessor_1: {
+    options = {
+        properties: true,
+    }
+    input: {
+        console.log({
+            a: "FAIL",
+            get a() {
+                return "PASS";
+            }
+        }.a);
+    }
+    expect: {
+        console.log({
+            a: "FAIL",
+            get a() {
+                return "PASS";
+            }
+        }.a);
+    }
+    expect_stdout: "PASS"
+    node_version: ">=4"
+}
+
+accessor_2: {
+    options = {
+        properties: true,
+    }
+    input: {
+        console.log({
+            get a() {
+                return "PASS";
+            },
+            set a(v) {},
+            a: "FAIL"
+        }.a);
+    }
+    expect: {
+        console.log({
+            get a() {
+                return "PASS";
+            },
+            set a(v) {},
+            a: "FAIL"
+        }.a);
+    }
+    expect_stdout: true
+}
+
+array_hole: {
+    options = {
+        properties: true,
+        side_effects: true,
+    }
+    input: {
+        console.log(
+            [ 1, 2, , 3][1],
+            [ 1, 2, , 3][2],
+            [ 1, 2, , 3][3]
+        );
+    }
+    expect: {
+        console.log(2, void 0, 3);
+    }
+    expect_stdout: "2 undefined 3"
+}
+
+computed_property: {
+    options = {
+        properties: true,
+        side_effects: true,
+    }
+    input: {
+        console.log({
+            a: "bar",
+            [console.log("foo")]: 42,
+        }.a);
+    }
+    expect: {
+        console.log([
+            "bar",
+            console.log("foo")
+        ][0]);
+    }
+    expect_stdout: [
+        "foo",
+        "bar"
+    ]
+    node_version: ">=4"
+}
+
+new_this: {
+    options = {
+        properties: true,
+        side_effects: true,
+    }
+    input: {
+        new {
+            f: function(a) {
+                this.a = a;
+            }
+        }.f(42);
+    }
+    expect: {
+        new function(a) {
+            this.a = a;
+        }(42);
+    }
+}
+
+issue_2513: {
+    options = {
+        evaluate: true,
+        properties: true,
+    }
+    input: {
+        !function(Infinity, NaN, undefined) {
+            console.log("a"[1/0], "b"["Infinity"]);
+            console.log("c"[0/0], "d"["NaN"]);
+            console.log("e"[void 0], "f"["undefined"]);
+        }(0, 0, 0);
+    }
+    expect: {
+        !function(Infinity, NaN, undefined) {
+            console.log("a"[1/0], "b"[1/0]);
+            console.log("c".NaN, "d".NaN);
+            console.log("e"[void 0], "f"[void 0]);
+        }(0, 0, 0);
+    }
+    expect_stdout: [
+        "undefined undefined",
+        "undefined undefined",
+        "undefined undefined",
+    ]
+}
+
+const_prop_assign_strict: {
+    options = {
+        pure_getters: "strict",
+        side_effects: true,
+    }
+    input: {
+        function Simulator() {
+            /abc/.index = 1;
+            this._aircraft = [];
+        }
+        (function() {}).prototype.destroy = x();
+    }
+    expect: {
+        function Simulator() {
+            this._aircraft = [];
+        }
+        x();
+    }
+}
+
+const_prop_assign_pure: {
+    options = {
+        pure_getters: true,
+        side_effects: true,
+    }
+    input: {
+        function Simulator() {
+            /abc/.index = 1;
+            this._aircraft = [];
+        }
+        (function() {}).prototype.destroy = x();
+    }
+    expect: {
+        function Simulator() {
+            this._aircraft = [];
+        }
+        x();
+    }
+}
+
+join_object_assignments_1: {
+    options = {
+        evaluate: true,
+        join_vars: true,
+    }
+    input: {
+        console.log(function() {
+            var x = {
+                a: 1,
+                c: (console.log("c"), "C"),
+            };
+            x.b = 2;
+            x[3] = function() {
+                console.log(x);
+            },
+            x["a"] = /foo/,
+            x.bar = x;
+            return x;
+        }());
+    }
+    expect: {
+        console.log(function() {
+            var x = {
+                a: 1,
+                c: (console.log("c"), "C"),
+                b: 2,
+                3: function() {
+                    console.log(x);
+                },
+                a: /foo/,
+            };
+            x.bar = x;
+            return x;
+        }());
+    }
+    expect_stdout: true
+}
+
+join_object_assignments_2: {
+    options = {
+        evaluate: true,
+        hoist_props: true,
+        join_vars: true,
+        passes: 3,
+        reduce_vars: true,
+        toplevel: true,
+        unused: true,
+    }
+    input: {
+        var o = {
+            foo: 1,
+        };
+        o.bar = 2;
+        o.baz = 3;
+        console.log(o.foo, o.bar + o.bar, o.foo * o.bar * o.baz);
+    }
+    expect: {
+        console.log(1, 4, 6);
+    }
+    expect_stdout: "1 4 6"
+}
+
+join_object_assignments_3: {
+    options = {
+        evaluate: true,
+        join_vars: true,
+    }
+    input: {
+        console.log(function() {
+            var o = {
+                a: "PASS",
+            }, a = o.a;
+            o.a = "FAIL";
+            return a;
+        }());
+    }
+    expect: {
+        console.log(function() {
+            var o = {
+                a: "PASS",
+            }, a = o.a;
+            o.a = "FAIL";
+            return a;
+        }());
+    }
+    expect_stdout: "PASS"
+}
+
+join_object_assignments_return_1: {
+    options = {
+        join_vars: true,
+    }
+    input: {
+        console.log(function() {
+            var o = {
+                p: 3
+            };
+            return o.q = "foo";
+        }());
+    }
+    expect: {
+        console.log(function() {
+            var o = {
+                p: 3,
+                q: "foo"
+            };
+            return o.q;
+        }());
+    }
+    expect_stdout: "foo"
+}
+
+join_object_assignments_return_2: {
+    options = {
+        join_vars: true,
+    }
+    input: {
+        console.log(function() {
+            var o = {
+                p: 3
+            };
+            return o.q = /foo/,
+            o.r = "bar";
+        }());
+    }
+    expect: {
+        console.log(function() {
+            var o = {
+                p: 3,
+                q: /foo/,
+                r: "bar"
+            };
+            return o.r;
+        }());
+    }
+    expect_stdout: "bar"
+}
+
+join_object_assignments_return_3: {
+    options = {
+        join_vars: true,
+    }
+    input: {
+        console.log(function() {
+            var o = {
+                p: 3
+            };
+            return o.q = "foo",
+            o.p += "",
+            console.log(o.q),
+            o.p;
+        }());
+    }
+    expect: {
+        console.log(function() {
+            var o = {
+                p: 3,
+                q: "foo"
+            };
+            return o.p += "",
+            console.log(o.q),
+            o.p;
+        }());
+    }
+    expect_stdout: [
+        "foo",
+        "3",
+    ]
+}
+
+join_object_assignments_for: {
+    options = {
+        join_vars: true,
+    }
+    input: {
+        console.log(function() {
+            var o = {
+                p: 3
+            };
+            for (o.q = "foo"; console.log(o.q););
+            return o.p;
+        }());
+    }
+    expect: {
+        console.log(function() {
+            for (var o = {
+                p: 3,
+                q: "foo"
+            }; console.log(o.q););
+            return o.p;
+        }());
+    }
+    expect_stdout: [
+        "foo",
+        "3",
+    ]
+}
+
+join_object_assignments_if: {
+    options = {
+        join_vars: true,
+    }
+    input: {
+        console.log(function() {
+            var o = {};
+            if (o.a = "PASS") return o.a;
+        }())
+    }
+    expect: {
+        console.log(function() {
+            var o = { a: "PASS" };
+            if (o.a) return o.a;
+        }());
+    }
+    expect_stdout: "PASS"
+}
+
+join_object_assignments_forin: {
+    options = {
+        join_vars: true,
+    }
+    input: {
+        console.log(function() {
+            var o = {};
+            for (var a in o.a = "PASS", o)
+                return o[a];
+        }())
+    }
+    expect: {
+        console.log(function() {
+            var o = { a: "PASS" };
+            for (var a in o)
+                return o[a];
+        }());
+    }
+    expect_stdout: "PASS"
+}
+
+join_object_assignments_negative: {
+    options = {
+        evaluate: true,
+        join_vars: true,
+        properties: true,
+    }
+    input: {
+        var o = {};
+        o[0] = 0;
+        o[-0] = 1;
+        o[-1] = 2;
+        console.log(o[0], o[-0], o[-1]);
+    }
+    expect: {
+        var o = {
+            0: 0,
+            0: 1,
+            "-1": 2
+        };
+        console.log(o[0], o[-0], o[-1]);
+    }
+    expect_stdout: "1 1 2"
+}
+
+join_object_assignments_NaN_1: {
+    options = {
+        join_vars: true,
+    }
+    input: {
+        var o = {};
+        o[NaN] = 1;
+        o[0/0] = 2;
+        console.log(o[NaN], o[NaN]);
+    }
+    expect: {
+        var o = {};
+        o[NaN] = 1;
+        o[0/0] = 2;
+        console.log(o[NaN], o[NaN]);
+    }
+    expect_stdout: "2 2"
+}
+
+join_object_assignments_NaN_2: {
+    options = {
+        evaluate: true,
+        join_vars: true,
+        properties: true,
+    }
+    input: {
+        var o = {};
+        o[NaN] = 1;
+        o[0/0] = 2;
+        console.log(o[NaN], o[NaN]);
+    }
+    expect: {
+        var o = {
+            NaN: 1,
+            NaN: 2
+        };
+        console.log(o.NaN, o.NaN);
+    }
+    expect_stdout: "2 2"
+}
+
+join_object_assignments_null_0: {
+    options = {
+        join_vars: true,
+    }
+    input: {
+        var o = {};
+        o[null] = 1;
+        console.log(o[null]);
+    }
+    expect: {
+        var o = {};
+        o[null] = 1;
+        console.log(o[null]);
+    }
+    expect_stdout: "1"
+}
+
+join_object_assignments_null_1: {
+    options = {
+        evaluate: true,
+        join_vars: true,
+        properties: true,
+    }
+    input: {
+        var o = {};
+        o[null] = 1;
+        console.log(o[null]);
+    }
+    expect: {
+        var o = {
+            null: 1
+        };
+        console.log(o.null);
+    }
+    expect_stdout: "1"
+}
+
+join_object_assignments_void_0: {
+    options = {
+        evaluate: true,
+        join_vars: true,
+    }
+    input: {
+        var o = {};
+        o[void 0] = 1;
+        console.log(o[void 0]);
+    }
+    expect: {
+        var o = {
+            undefined: 1
+        };
+        console.log(o[void 0]);
+    }
+    expect_stdout: "1"
+}
+
+join_object_assignments_undefined_1: {
+    options = {
+        join_vars: true,
+    }
+    input: {
+        var o = {};
+        o[undefined] = 1;
+        console.log(o[undefined]);
+    }
+    expect: {
+        var o = {};
+        o[void 0] = 1;
+        console.log(o[void 0]);
+    }
+    expect_stdout: "1"
+}
+
+join_object_assignments_undefined_2: {
+    options = {
+        evaluate: true,
+        join_vars: true,
+        properties: true,
+    }
+    input: {
+        var o = {};
+        o[undefined] = 1;
+        console.log(o[undefined]);
+    }
+    expect: {
+        var o = {
+            undefined : 1
+        };
+        console.log(o[void 0]);
+    }
+    expect_stdout: "1"
+}
+
+join_object_assignments_Infinity: {
+    options = {
+        evaluate: true,
+        join_vars: true,
+        properties: true,
+    }
+    input: {
+        var o = {};
+        o[Infinity] = 1;
+        o[1/0] = 2;
+        o[-Infinity] = 3;
+        o[-1/0] = 4;
+        console.log(o[Infinity], o[1/0], o[-Infinity], o[-1/0]);
+    }
+    expect: {
+        var o = {
+            Infinity: 1,
+            Infinity: 2,
+            "-Infinity": 3,
+            "-Infinity": 4
+        };
+        console.log(o[1/0], o[1/0], o[-1/0], o[-1/0]);
+    }
+    expect_stdout: "2 2 4 4"
+}
+
+join_object_assignments_regex: {
+    options = {
+        evaluate: true,
+        join_vars: true,
+        properties: true,
+    }
+    input: {
+        var o = {};
+        o[/rx/] = 1;
+        console.log(o[/rx/]);
+    }
+    expect: {
+        var o = {
+            "/rx/": 1
+        };
+        console.log(o[/rx/]);
+    }
+    expect_stdout: "1"
+}
+
+issue_2816: {
+    options = {
+        join_vars: true,
+    }
+    input: {
+        "use strict";
+        var o = {
+            a: 1
+        };
+        o.b = 2;
+        o.a = 3;
+        o.c = 4;
+        console.log(o.a, o.b, o.c);
+    }
+    expect: {
+        "use strict";
+        var o = {
+            a: 1,
+            b: 2
+        };
+        o.a = 3;
+        o.c = 4;
+        console.log(o.a, o.b, o.c);
+    }
+    expect_stdout: "3 2 4"
+}
+
+issue_2816_ecma6: {
+    options = {
+        ecma: "6",
+        join_vars: true,
+    }
+    input: {
+        "use strict";
+        var o = {
+            a: 1
+        };
+        o.b = 2;
+        o.a = 3;
+        o.c = 4;
+        console.log(o.a, o.b, o.c);
+    }
+    expect: {
+        "use strict";
+        var o = {
+            a: 1,
+            b: 2,
+            a: 3,
+            c: 4
+        };
+        console.log(o.a, o.b, o.c);
+    }
+    expect_stdout: "3 2 4"
+    node_version: ">=4"
 }

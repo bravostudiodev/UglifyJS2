@@ -1,25 +1,34 @@
 do_screw: {
-    options = { screw_ie8: true };
+    options = {
+        ie8: false,
+    }
     beautify = {
-        screw_ie8: true,
-        ascii_only: true
-    };
-
-    input: f("\v");
-    expect_exact: 'f("\\v");';
+        ie8: false,
+        ascii_only: true,
+    }
+    input: {
+        f("\v");
+    }
+    expect_exact: 'f("\\v");'
 }
 
 dont_screw: {
-    options = { screw_ie8: false };
-    beautify = { screw_ie8: false, ascii_only: true };
-
-    input: f("\v");
-    expect_exact: 'f("\\x0B");';
+    options = {
+        ie8: true,
+    }
+    beautify = {
+        ie8: true,
+        ascii_only: true,
+    }
+    input: {
+        f("\v");
+    }
+    expect_exact: 'f("\\x0B");'
 }
 
 do_screw_constants: {
     options = {
-        screw_ie8: true,
+        ie8: false,
     }
     input: {
         f(undefined, Infinity);
@@ -29,7 +38,7 @@ do_screw_constants: {
 
 dont_screw_constants: {
     options = {
-        screw_ie8: false,
+        ie8: true,
     }
     input: {
         f(undefined, Infinity);
@@ -38,9 +47,15 @@ dont_screw_constants: {
 }
 
 do_screw_try_catch: {
-    options = { screw_ie8: true };
-    mangle = { screw_ie8: true };
-    beautify = { screw_ie8: true };
+    options = {
+        ie8: false,
+    }
+    mangle = {
+        ie8: false,
+    }
+    beautify = {
+        ie8: false,
+    }
     input: {
         good = function(e){
             return function(error){
@@ -66,9 +81,15 @@ do_screw_try_catch: {
 }
 
 dont_screw_try_catch: {
-    options = { screw_ie8: false };
-    mangle = { screw_ie8: false };
-    beautify = { screw_ie8: false };
+    options = {
+        ie8: true,
+    }
+    mangle = {
+        ie8: true,
+    }
+    beautify = {
+        ie8: true,
+    }
     input: {
         bad = function(e){
             return function(error){
@@ -94,9 +115,15 @@ dont_screw_try_catch: {
 }
 
 do_screw_try_catch_undefined: {
-    options = { screw_ie8: true };
-    mangle = { screw_ie8: true };
-    beautify = { screw_ie8: true };
+    options = {
+        ie8: false,
+    }
+    mangle = {
+        ie8: false,
+    }
+    beautify = {
+        ie8: false,
+    }
     input: {
         function a(b){
             try {
@@ -119,12 +146,19 @@ do_screw_try_catch_undefined: {
             return void 0===o
         }
     }
+    expect_stdout: true
 }
 
 dont_screw_try_catch_undefined: {
-    options = { screw_ie8: false };
-    mangle = { screw_ie8: false };
-    beautify = { screw_ie8: false };
+    options = {
+        ie8: true,
+    }
+    mangle = {
+        ie8: true,
+    }
+    beautify = {
+        ie8: true,
+    }
     input: {
         function a(b){
             try {
@@ -147,17 +181,19 @@ dont_screw_try_catch_undefined: {
             return n === undefined
         }
     }
+    expect_stdout: true
 }
 
 reduce_vars: {
     options = {
         evaluate: true,
+        reduce_funcs: true,
         reduce_vars: true,
-        screw_ie8: false,
+        ie8: true,
         unused: true,
     }
     mangle = {
-        screw_ie8: false,
+        ie8: true,
     }
     input: {
         function f() {
@@ -181,4 +217,178 @@ reduce_vars: {
             alert(t);
         }
     }
+}
+
+issue_1586_1: {
+    options = {
+        ie8: true,
+    }
+    mangle = {
+        ie8: true,
+    }
+    input: {
+        function f() {
+            try {
+                x();
+            } catch (err) {
+                console.log(err.message);
+            }
+        }
+    }
+    expect_exact: "function f(){try{x()}catch(c){console.log(c.message)}}"
+}
+
+issue_1586_2: {
+    options = {
+        ie8: false,
+    }
+    mangle = {
+        ie8: false,
+    }
+    input: {
+        function f() {
+            try {
+                x();
+            } catch (err) {
+                console.log(err.message);
+            }
+        }
+    }
+    expect_exact: "function f(){try{x()}catch(c){console.log(c.message)}}"
+}
+
+issue_2120_1: {
+    mangle = {
+        ie8: false,
+    }
+    input: {
+        "aaaaaaaa";
+        var a = 1, b = "FAIL";
+        try {
+            throw 1;
+        } catch (c) {
+            try {
+                throw 0;
+            } catch (a) {
+                if (c) b = "PASS";
+            }
+        }
+        console.log(b);
+    }
+    expect: {
+        "aaaaaaaa";
+        var a = 1, b = "FAIL";
+        try {
+            throw 1;
+        } catch (t) {
+            try {
+                throw 0;
+            } catch (a) {
+                if (t) b = "PASS";
+            }
+        }
+        console.log(b);
+    }
+    expect_stdout: "PASS"
+}
+
+issue_2120_2: {
+    mangle = {
+        ie8: true,
+    }
+    input: {
+        "aaaaaaaa";
+        var a = 1, b = "FAIL";
+        try {
+            throw 1;
+        } catch (c) {
+            try {
+                throw 0;
+            } catch (a) {
+                if (c) b = "PASS";
+            }
+        }
+        console.log(b);
+    }
+    expect: {
+        "aaaaaaaa";
+        var a = 1, b = "FAIL";
+        try {
+            throw 1;
+        } catch (c) {
+            try {
+                throw 0;
+            } catch (a) {
+                if (c) b = "PASS";
+            }
+        }
+        console.log(b);
+    }
+    expect_stdout: "PASS"
+}
+
+issue_2254_1: {
+    mangle = {
+        ie8: false,
+    }
+    input: {
+        "eeeeee";
+        try {
+            console.log(f("PASS"));
+        } catch (e) {}
+        function f(s) {
+            try {
+                throw "FAIL";
+            } catch (e) {
+                return s;
+            }
+        }
+    }
+    expect: {
+        "eeeeee";
+        try {
+            console.log(f("PASS"));
+        } catch (e) {}
+        function f(e) {
+            try {
+                throw "FAIL";
+            } catch (t) {
+                return e;
+            }
+        }
+    }
+    expect_stdout: "PASS"
+}
+
+issue_2254_2: {
+    mangle = {
+        ie8: true,
+    }
+    input: {
+        "eeeeee";
+        try {
+            console.log(f("PASS"));
+        } catch (e) {}
+        function f(s) {
+            try {
+                throw "FAIL";
+            } catch (e) {
+                return s;
+            }
+        }
+    }
+    expect: {
+        "eeeeee";
+        try {
+            console.log(f("PASS"));
+        } catch (e) {}
+        function f(t) {
+            try {
+                throw "FAIL";
+            } catch (e) {
+                return t;
+            }
+        }
+    }
+    expect_stdout: "PASS"
 }

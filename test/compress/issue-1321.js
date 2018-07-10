@@ -1,6 +1,8 @@
 issue_1321_no_debug: {
-    mangle_props = {
-        ignore_quoted: true
+    mangle = {
+        properties: {
+            keep_quoted: true,
+        },
     }
     input: {
         var x = {};
@@ -10,16 +12,19 @@ issue_1321_no_debug: {
     }
     expect: {
         var x = {};
-        x.b = 1;
-        x["a"] = 2 * x.b;
-        console.log(x.b, x["a"]);
+        x.x = 1;
+        x["a"] = 2 * x.x;
+        console.log(x.x, x["a"]);
     }
+    expect_stdout: true
 }
 
 issue_1321_debug: {
-    mangle_props = {
-        ignore_quoted: true,
-        debug: ""
+    mangle = {
+        properties: {
+            debug: "",
+            keep_quoted: true,
+        },
     }
     input: {
         var x = {};
@@ -29,15 +34,18 @@ issue_1321_debug: {
     }
     expect: {
         var x = {};
-        x.a = 1;
-        x["_$foo$_"] = 2 * x.a;
-        console.log(x.a, x["_$foo$_"]);
+        x.x = 1;
+        x["_$foo$_"] = 2 * x.x;
+        console.log(x.x, x["_$foo$_"]);
     }
+    expect_stdout: true
 }
 
 issue_1321_with_quoted: {
-    mangle_props = {
-        ignore_quoted: false
+    mangle = {
+        properties: {
+            keep_quoted: false,
+        },
     }
     input: {
         var x = {};
@@ -47,8 +55,9 @@ issue_1321_with_quoted: {
     }
     expect: {
         var x = {};
-        x.a = 1;
-        x["b"] = 2 * x.a;
-        console.log(x.a, x["b"]);
+        x.x = 1;
+        x["o"] = 2 * x.x;
+        console.log(x.x, x["o"]);
     }
+    expect_stdout: true
 }

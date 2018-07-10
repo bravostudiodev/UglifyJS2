@@ -1,5 +1,5 @@
 var assert = require("assert");
-var uglify = require("../../");
+var uglify = require("../node");
 
 describe("Template string", function() {
     it("Should not accept invalid sequences", function() {
@@ -29,5 +29,14 @@ describe("Template string", function() {
         for (var i = 0; i < tests.length; i++) {
             assert.throws(exec(tests[i]), fail, tests[i]);
         }
+    });
+    it("Should process all line terminators as LF", function() {
+        [
+            "`a\rb`",
+            "`a\nb`",
+            "`a\r\nb`",
+        ].forEach(function(code) {
+            assert.strictEqual(uglify.parse(code).print_to_string(), "`a\\nb`;");
+        });
     });
 });

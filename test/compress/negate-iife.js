@@ -22,27 +22,25 @@ negate_iife_1_off: {
 
 negate_iife_2: {
     options = {
-        negate_iife: true
+        inline: true,
+        negate_iife: true,
     };
     input: {
-        (function(){ return {} })().x = 10; // should not transform this one
-    }
-    expect: {
         (function(){ return {} })().x = 10;
     }
+    expect_exact: "({}).x=10;"
 }
 
 negate_iife_2_side_effects: {
     options = {
+        inline: true,
         negate_iife: true,
         side_effects: true,
     }
     input: {
-        (function(){ return {} })().x = 10; // should not transform this one
-    }
-    expect: {
         (function(){ return {} })().x = 10;
     }
+    expect_exact: "({}).x=10;"
 }
 
 negate_iife_3: {
@@ -62,6 +60,7 @@ negate_iife_3_evaluate: {
     options = {
         conditionals: true,
         evaluate: true,
+        inline: true,
         negate_iife: true,
     }
     input: {
@@ -70,6 +69,7 @@ negate_iife_3_evaluate: {
     expect: {
         console.log(true);
     }
+    expect_stdout: true
 }
 
 negate_iife_3_side_effects: {
@@ -103,6 +103,7 @@ negate_iife_3_off_evaluate: {
     options = {
         conditionals: true,
         evaluate: true,
+        inline: true,
         negate_iife: false,
     }
     input: {
@@ -111,6 +112,7 @@ negate_iife_3_off_evaluate: {
     expect: {
         console.log(true);
     }
+    expect_stdout: true
 }
 
 negate_iife_4: {
@@ -243,6 +245,7 @@ negate_iife_nested: {
             }(7);
         }).f();
     }
+    expect_stdout: true
 }
 
 negate_iife_nested_off: {
@@ -275,6 +278,7 @@ negate_iife_nested_off: {
             })(7);
         }).f();
     }
+    expect_stdout: true
 }
 
 negate_iife_issue_1073: {
@@ -299,6 +303,7 @@ negate_iife_issue_1073: {
             };
         }(7))();
     }
+    expect_stdout: true
 }
 
 issue_1254_negate_iife_false: {
@@ -313,6 +318,7 @@ issue_1254_negate_iife_false: {
         })()();
     }
     expect_exact: '(function(){return function(){console.log("test")}})()();'
+    expect_stdout: true
 }
 
 issue_1254_negate_iife_true: {
@@ -327,6 +333,7 @@ issue_1254_negate_iife_true: {
         })()();
     }
     expect_exact: '!function(){return function(){console.log("test")}}()();'
+    expect_stdout: true
 }
 
 issue_1254_negate_iife_nested: {
@@ -341,12 +348,14 @@ issue_1254_negate_iife_nested: {
         })()()()()();
     }
     expect_exact: '!function(){return function(){console.log("test")}}()()()()();'
+    expect_stdout: true
 }
 
 issue_1288: {
     options = {
-        negate_iife: true,
         conditionals: true,
+        negate_iife: true,
+        side_effects: false,
     };
     input: {
         if (w) ;
@@ -366,11 +375,11 @@ issue_1288: {
             })(0);
     }
     expect: {
-        w || function f() {}();
-        x || function() {
+        w || !function f() {}();
+        x || !function() {
             x = {};
         }();
-        y ? function() {}() : function(z) {
+        y ? !function() {}() : !function(z) {
             return z;
         }(0);
     }

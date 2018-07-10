@@ -2,29 +2,56 @@ var Uglify = require('../../');
 var assert = require("assert");
 
 describe("let", function() {
-    it("Should not produce `let` as a variable name in mangle", function(done) {
-        this.timeout(10000);
-
+    this.timeout(30000);
+    it("Should not produce reserved keywords as variable name in mangle", function() {
         // Produce a lot of variables in a function and run it through mangle.
-        var s = '"use strict"; function foo() {';
-        for (var i = 0; i < 21000; ++i) {
+        var s = '"dddddeeeeelllllooooottttt"; function foo() {';
+        for (var i = 0; i < 18000; i++) {
             s += "var v" + i + "=0;";
         }
         s += '}';
-        var result = Uglify.minify(s, {fromString: true, compress: false});
+        var result = Uglify.minify(s, {
+            compress: false
+        }).code;
 
         // Verify that select keywords and reserved keywords not produced
-        assert.strictEqual(result.code.indexOf("var let="), -1);
-        assert.strictEqual(result.code.indexOf("var do="), -1);
-        assert.strictEqual(result.code.indexOf("var var="), -1);
+        [
+            "do",
+            "let",
+            "var",
+        ].forEach(function(name) {
+            assert.strictEqual(result.indexOf("var " + name + "="), -1);
+        });
 
         // Verify that the variable names that appeared immediately before
-        // and after the erroneously generated `let` variable name still exist
+        // and after the erroneously generated variable name still exist
         // to show the test generated enough symbols.
-        assert(result.code.indexOf("var ket=") >= 0);
-        assert(result.code.indexOf("var met=") >= 0);
-
-        done();
+        [
+            "to", "eo",
+            "eet", "fet",
+            "rar", "oar",
+        ].forEach(function(name) {
+            assert.notStrictEqual(result.indexOf("var " + name + "="), -1);
+        });
+    });
+    it("Should quote mangled properties that are reserved keywords", function() {
+        var s = '"rrrrrnnnnniiiiiaaaaa";';
+        for (var i = 0; i < 18000; i++) {
+            s += "v.b" + i + ";";
+        }
+        var result = Uglify.minify(s, {
+            compress: false,
+            ie8: true,
+            mangle: {
+                properties: true,
+            }
+        }).code;
+        [
+            "in",
+            "var",
+        ].forEach(function(name) {
+            assert.notStrictEqual(result.indexOf(name), -1);
+            assert.notStrictEqual(result.indexOf('v["' + name + '"]'), -1);
+        });
     });
 });
-

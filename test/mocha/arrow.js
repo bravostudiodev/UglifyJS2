@@ -1,5 +1,5 @@
 var assert = require("assert");
-var uglify = require("../../");
+var uglify = require("../node");
 
 describe("Arrow functions", function() {
     it("Should not accept spread tokens on non-last parameters or without arguments parentheses", function() {
@@ -10,7 +10,7 @@ describe("Arrow functions", function() {
         ];
         var test = function(code) {
             return function() {
-                uglify.parse(code, {fromString: true});
+                uglify.parse(code);
             }
         }
         var error = function(e) {
@@ -28,7 +28,7 @@ describe("Arrow functions", function() {
         ];
         var test = function(code) {
             return function() {
-                uglify.parse(code, {fromString: true});
+                uglify.parse(code);
             }
         }
         var error = function(e) {
@@ -49,7 +49,7 @@ describe("Arrow functions", function() {
         ];
         var test = function(code) {
             return function() {
-                uglify.parse(code, {fromString: true});
+                uglify.parse(code);
             }
         }
         var error = function(e) {
@@ -62,23 +62,20 @@ describe("Arrow functions", function() {
         }
     });
     it("Should not accept arrow functions in the middle or end of an expression", function() {
-        var tests = [
+        [
+            "0 + x => 0",
+            "0 + async x => 0",
             "typeof x => 0",
-            "0 + x => 0"
-        ];
-        var test = function(code) {
-            return function() {
-                uglify.parse(code, {fromString: true});
-            }
-        }
-        var error = function(e) {
-            return e instanceof uglify.JS_Parse_Error &&
-                e.message === "Unexpected token: arrow (=>)";
-        }
-
-        for (var i = 0; i < tests.length; i++) {
-            assert.throws(test(tests[i]), error);
-        }
+            "typeof async x => 0",
+            "typeof (x) => null",
+            "typeof async (x) => null",
+        ].forEach(function(code) {
+            assert.throws(function() {
+                uglify.parse(code);
+            }, function(e) {
+                return e instanceof uglify.JS_Parse_Error && /^Unexpected /.test(e.message);
+            }, code);
+        });
     });
 
     it("Should parse a function containing default assignment correctly", function() {
@@ -385,7 +382,6 @@ describe("Arrow functions", function() {
     it("Should handle arrow function with bind", function() {
         function minify(code) {
             return uglify.minify(code, {
-                fromString: true,
                 mangle: false
             }).code;
         }

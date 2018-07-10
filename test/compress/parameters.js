@@ -1,4 +1,7 @@
 arrow_functions: {
+    options = {
+        arrows: true,
+    }
     input: {
         (a) => b;  // 1 args
         (a, b) => c;  // n args
@@ -9,7 +12,22 @@ arrow_functions: {
         a=>{return b;}
         a => 'lel';  // Dropping the parens
     }
-    expect_exact: "a=>b;(a,b)=>c;()=>b;a=>b=>c;a=>b=>c;()=>(b,c)=>d;a=>{return b};a=>\"lel\";"
+    expect_exact: "a=>b;(a,b)=>c;()=>b;a=>b=>c;a=>b=>c;()=>(b,c)=>d;a=>b;a=>\"lel\";"
+}
+
+arrow_return: {
+    options = {
+        arrows: true,
+    }
+    input: {
+        () => {};
+        () => { return; };
+        a => { return 1; }
+        a => { return -b }
+        a => { return b; var b; }
+        (x, y) => { return x - y; }
+    }
+    expect_exact: "()=>{};()=>{};a=>1;a=>-b;a=>{return b;var b};(x,y)=>x-y;"
 }
 
 regression_arrow_functions_and_hoist: {
@@ -124,11 +142,11 @@ destructuring_arguments_3: {
     }
     input: {
         function fn3({x: {y: {z: {} = 42}}}) {}
-        const { cover = (function () {}), xCover = (0, function() {})  } = {};
-        let { cover = (function () {}), xCover = (0, function() {})  } = {};
-        var { cover = (function () {}), xCover = (0, function() {})  } = {};
+        const { a = (function () {}), b = (0, function() {})  } = {};
+        let { c = (function () {}), d = (0, function() {})  } = {};
+        var { e = (function () {}), f = (0, function() {})  } = {};
     }
-    expect_exact: "function fn3({x:{y:{z:{}=42}}}){}const{cover=function(){},xCover=(0,function(){})}={};let{cover=function(){},xCover=(0,function(){})}={};var{cover=function(){},xCover=(0,function(){})}={};"
+    expect_exact: "function fn3({x:{y:{z:{}=42}}}){}const{a=function(){},b=(0,function(){})}={};let{c=function(){},d=(0,function(){})}={};var{e=function(){},f=(0,function(){})}={};"
 }
 
 default_arguments: {

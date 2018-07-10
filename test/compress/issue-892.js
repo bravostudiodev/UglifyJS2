@@ -18,7 +18,6 @@ dont_mangle_arguments: {
         hoist_vars    : true,
         if_return     : true,
         join_vars     : true,
-        cascade       : true,
         side_effects  : true,
         negate_iife   : false
     };
@@ -29,4 +28,5 @@ dont_mangle_arguments: {
         })(5,6,7);
     }
     expect_exact: "(function(){var arguments=arguments,o=9;console.log(o,arguments)})(5,6,7);"
+    expect_stdout: true
 }

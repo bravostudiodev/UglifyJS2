@@ -1,5 +1,5 @@
 var assert = require("assert");
-var uglify = require("../../");
+var uglify = require("../node");
 
 describe("New", function() {
     it("Should add trailing parentheses for new expressions with zero arguments in beautify mode", function() {
@@ -34,7 +34,6 @@ describe("New", function() {
         for (var i = 0; i < tests.length; i++) {
             assert.strictEqual(
                 uglify.minify(tests[i], {
-                    fromString: true,
                     output: {beautify: true},
                     compress: false,
                     mangle: false
@@ -76,7 +75,6 @@ describe("New", function() {
         for (var i = 0; i < tests.length; i++) {
             assert.strictEqual(
                 uglify.minify(tests[i], {
-                    fromString: true,
                     output: {beautify: false},
                     compress: false,
                     mangle: false
